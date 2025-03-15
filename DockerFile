@@ -24,7 +24,7 @@ FROM eclipse-temurin:11-jre-jammy
 
 WORKDIR /app
 
-# Create non-root user
+# Create non-root user (increased security)
 RUN groupadd -r appgroup && \
     useradd -r -g appgroup -d /app -s /bin/false appuser && \
     chown -R appuser:appgroup /app
