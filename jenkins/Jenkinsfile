@@ -63,6 +63,9 @@ pipeline {
     // Runs an analysis of the code, looking for any
     // patterns that suggest potential bugs.
     stage('Static Analysis') {
+      environment {
+        SONAR_HOST_URL = 'http://host.docker.internal:9000'
+      }
       steps {
         sh './gradlew sonarqube'
         // wait for sonarqube to finish its analysis
