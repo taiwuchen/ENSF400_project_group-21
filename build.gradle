@@ -456,7 +456,7 @@ static void isQualityGateGood() {
     URL url = new URL("http://${sonarHost}:9000/api/qualitygates/project_status?projectKey=Demo")
     HttpURLConnection connection = (HttpURLConnection) url.openConnection()
 
-    String auth = "admin:ensf400" // Use your credentials
+    String auth = "admin:admin" // Use your credentials
     String encodedAuth = Base64.encoder.encodeToString(auth.bytes)
     connection.setRequestProperty("Authorization", "Basic " + encodedAuth)
     connection.setRequestMethod("GET")
