@@ -5,21 +5,14 @@ pipeline {
   agent any
 
    environment {
-        // This is set so that the Python API tests will recognize it
-        // and go through the Zap proxy waiting at 9888
-        HTTP_PROXY = 'http://127.0.0.1:9888'
-   }
+    HTTP_PROXY = 'http://zap:8080'
+  }
 
   stages {
 
     // build the war file (the binary).  This is the only
     // place that happens.
     stage('Build') {
-      environment {
-        // Override JAVA_HOME to use JDK 11 for this stage
-        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
-      }
       steps {
         sh './gradlew clean assemble'
       }
@@ -28,11 +21,6 @@ pipeline {
     // run all the unit tests - these do not require anything else
     // to be running and most run very quickly.
     stage('Unit Tests') {
-      environment {
-        // Override JAVA_HOME to use JDK 11 for this stage
-        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
-      }
       steps {
         sh './gradlew test'
       }
@@ -46,11 +34,6 @@ pipeline {
     // run the tests which require connection to a
     // running database.
     stage('Database Tests') {
-      environment {
-        // Override JAVA_HOME to use JDK 11 for this stage
-        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
-      }
       steps {
         sh './gradlew integrate'
       }
@@ -65,11 +48,6 @@ pipeline {
     // See the files in src/bdd_test
     // These tests do not require a running system.
     stage('BDD Tests') {
-      environment {
-        // Override JAVA_HOME to use JDK 11 for this stage
-        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
-      }
       steps {
         sh './gradlew generateCucumberReports'
         // generate the code coverage report for jacoco
@@ -85,18 +63,18 @@ pipeline {
     // Runs an analysis of the code, looking for any
     // patterns that suggest potential bugs.
     stage('Static Analysis') {
-        environment {
-          // Override JAVA_HOME to use JDK 11 for this stage
-          JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-          PATH = "${JAVA_HOME}/bin:${PATH}"
-        }      
-
-      steps{
-        sh './gradlew sonarqube -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login="admin" -Dsonar.password="ensf400"'
+      steps {
+        sh './gradlew sonarqube'
+        // wait for sonarqube to finish its analysis
+        sleep 5
+        sh './gradlew checkQualityGate'
       }
     }
 
-    // Might need to remove all code from here to the end
+
+    // Move the binary over to the test environment and
+    // get it running, in preparation for tests that
+    // require a whole system to be running.
     stage('Deploy to Test') {
       steps {
       sh './gradlew deployToTestWindowsLocal'
@@ -111,12 +89,28 @@ pipeline {
       }
     }
 
+    // Run OWASP's "DependencyCheck". https://owasp.org/www-project-dependency-check/
+    // You are what you eat - and so it is with software.  This
+    // software consists of a number of software by other authors.
+    // For example, for this project we use language tools by Apache,
+    // password complexity analysis, and several others.  Each one of
+    // these might have security bugs - and if they have a security
+    // bug, so do we!
+    //
+    // DependencyCheck looks at the list of known
+    // security vulnerabilities from the United States National Institute of
+    // Standards and Technology (NIST), and checks if the software
+    // we are importing has any major known vulnerabilities. If so,
+    // the build will halt at this point.
     stage('Security: Dependency Analysis') {
       steps {
          sh './gradlew dependencyCheckAnalyze'
       }
     }
 
+    // Run Jmeter performance testing https://jmeter.apache.org/
+    // This test simulates 50 users concurrently using our software
+    // for a set of common tasks.
     stage('Performance Tests') {
       steps {
          sh './gradlew runPerfTests --info --stacktrace'
@@ -136,12 +130,17 @@ pipeline {
       }
     }
 
+
+    // This is the stage where we deploy to production.  If any test
+    // fails, we won't get here.  Note that we aren't really doing anything - this
+    // is a token step, to indicate whether we would have deployed or not.  Nothing actually
+    // happens, since this is a demo project.
     stage('Deploy to Prod') {
       steps {
+        // just a token operation while we pretend to deploy
         sh 'sleep 5'
       }
     }
-    
-  }
 
+  }
 }
