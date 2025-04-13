@@ -149,7 +149,7 @@ dependencies {
     // for equals and hashcode are met.  It's very strict.  Because it's very
     // strict, it forces us to create very safe, very solid code.
     // https://mvnrepository.com/artifact/nl.jqno.equalsverifier/equalsverifier
-    testImplementation group: 'nl.jqno.equalsverifier', name: 'equalsverifier', version: '3.1.13'
+    testImplementation group: 'nl.jqno.equalsverifier', name: 'equalsverifier', version: '3.14.1'
 
     testImplementation 'io.cucumber:cucumber-java:5.7.0'
     testImplementation 'io.cucumber:cucumber-junit:5.7.0'
@@ -266,8 +266,9 @@ check.dependsOn(jacocoTestReport)
 
 sonarqube {
     properties {
-        property "sonar.projectKey", "$projectname"
-        property "sonar.projectName", "$projectname"
+        property "sonar.host.url",System.getenv("JENKINS") ? "http://sonarqube:9000" :"http://localhost:9000"
+        property "sonar.projectKey", "Demo"
+        property "sonar.projectName", "Demo"
         property "sonar.projectDescription", "A demonstration of a web application with good test coverage and best practices"
         property "sonar.sources", "src/main/java"
         property "sonar.tests", "src/test/java,src/integration_test/java,src/bdd_test/java"
@@ -275,7 +276,7 @@ sonarqube {
         property "sonar.junit.reportPaths", "build/test-results/test/,build/test-results/integrate"
         property "sonar.coverage.jacoco.xmlReportPaths", "build/jacoco/jacoco.xml"
         property "sonar.login", "admin"
-        property "sonar.password", "password"
+        property "sonar.password", "admin"
     }
 }
 
@@ -382,6 +383,7 @@ compileJava.finalizedBy writeGitCommitToFile
 static void checkIfAlive() {
     int code
     try {
+        String appHost = System.getenv("JENKINS") ? "app" : "localhost"
         URL url = new URL("http://localhost:8080/demo")
         HttpURLConnection connection = (HttpURLConnection) url.openConnection()
         connection.setRequestMethod("GET")
@@ -450,8 +452,13 @@ task checkQualityGate() {
 
 // throws an exception if the quality gate fails.
 static void isQualityGateGood() {
-    URL url = new URL("http://localhost:9000/api/qualitygates/project_status?projectKey=Demo")
+    String sonarHost = System.getenv("JENKINS") ? "sonarqube" : "localhost"
+    URL url = new URL("http://${sonarHost}:9000/api/qualitygates/project_status?projectKey=Demo")
     HttpURLConnection connection = (HttpURLConnection) url.openConnection()
+
+    String auth = "admin:admin" // Use your credentials
+    String encodedAuth = Base64.encoder.encodeToString(auth.bytes)
+    connection.setRequestProperty("Authorization", "Basic " + encodedAuth)
     connection.setRequestMethod("GET")
     connection.connect()
     int code = connection.getResponseCode()
