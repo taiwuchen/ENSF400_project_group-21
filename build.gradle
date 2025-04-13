@@ -276,6 +276,7 @@ sonarqube {
         property "sonar.coverage.jacoco.xmlReportPaths", "build/jacoco/jacoco.xml"
         property "sonar.login", "admin"
         property "sonar.password", "password"
+        property "sonar.host.url", System.getenv("JENKINS") ? "http://sonarqube:9000" : "http://localhost:9000"
     }
 }
 
@@ -382,6 +383,7 @@ compileJava.finalizedBy writeGitCommitToFile
 static void checkIfAlive() {
     int code
     try {
+        String appHost = System.getenv("JENKINS") ? "app" : "localhost"
         URL url = new URL("http://localhost:8080/demo")
         HttpURLConnection connection = (HttpURLConnection) url.openConnection()
         connection.setRequestMethod("GET")
@@ -450,8 +452,13 @@ task checkQualityGate() {
 
 // throws an exception if the quality gate fails.
 static void isQualityGateGood() {
-    URL url = new URL("http://localhost:9000/api/qualitygates/project_status?projectKey=Demo")
+    String sonarHost = System.getenv("JENKINS") ? "sonarqube" : "localhost"
+    URL url = new URL("http://${sonarHost}:9000/api/qualitygates/project_status?projectKey=Demo")
     HttpURLConnection connection = (HttpURLConnection) url.openConnection()
+
+    String auth = "admin:ensf400" // Use your credentials
+    String encodedAuth = Base64.encoder.encodeToString(auth.bytes)
+    connection.setRequestProperty("Authorization", "Basic " + encodedAuth)
     connection.setRequestMethod("GET")
     connection.connect()
     int code = connection.getResponseCode()
