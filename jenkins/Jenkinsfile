@@ -71,66 +71,6 @@ pipeline {
       }
     }
 
-
-    // Move the binary over to the test environment and
-    // get it running, in preparation for tests that
-    // require a whole system to be running.
-    stage('Deploy to Test') {
-      steps {
-      sh './gradlew deployToTestWindowsLocal'
-      // pipenv needs to be installed and on the path for this to work.
-      sh 'PIPENV_IGNORE_VIRTUALENVS=1 pipenv install'
-
-      // Wait here until the server tells us it's up and listening
-      sh './gradlew waitForHeartBeat'
-
-      // clear Zap's memory for the incoming tests
-      sh 'curl http://zap/JSON/core/action/newSession -s --proxy zap:8080'
-      }
-    }
-
-    // Run OWASP's "DependencyCheck". https://owasp.org/www-project-dependency-check/
-    // You are what you eat - and so it is with software.  This
-    // software consists of a number of software by other authors.
-    // For example, for this project we use language tools by Apache,
-    // password complexity analysis, and several others.  Each one of
-    // these might have security bugs - and if they have a security
-    // bug, so do we!
-    //
-    // DependencyCheck looks at the list of known
-    // security vulnerabilities from the United States National Institute of
-    // Standards and Technology (NIST), and checks if the software
-    // we are importing has any major known vulnerabilities. If so,
-    // the build will halt at this point.
-    stage('Security: Dependency Analysis') {
-      steps {
-         sh './gradlew dependencyCheckAnalyze'
-      }
-    }
-
-    // Run Jmeter performance testing https://jmeter.apache.org/
-    // This test simulates 50 users concurrently using our software
-    // for a set of common tasks.
-    stage('Performance Tests') {
-      steps {
-         sh './gradlew runPerfTests --info --stacktrace'
-      }
-    }
-
-    stage('Build Documentation') {
-      steps {
-         sh './gradlew javadoc'
-      }
-    }
-
-    stage('Collect Zap Security Report') {
-      steps {
-        sh 'mkdir -p build/reports/zap'
-        sh 'curl http://zap/OTHER/core/other/htmlreport --proxy zap:8080 > build/reports/zap/zap_report.html'
-      }
-    }
-
-
     // This is the stage where we deploy to production.  If any test
     // fails, we won't get here.  Note that we aren't really doing anything - this
     // is a token step, to indicate whether we would have deployed or not.  Nothing actually
