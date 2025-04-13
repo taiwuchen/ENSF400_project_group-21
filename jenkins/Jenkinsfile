@@ -60,14 +60,12 @@ pipeline {
         }
     }
 
+    // Runs an analysis of the code, looking for any
+    // patterns that suggest potential bugs.
     stage('Static Analysis') {
-      environment {
-        JAVA_HOME = '/usr/lib/jvm/java-11-openjdk'
-        PATH = "${JAVA_HOME}/bin:${PATH}"
-      }      
       steps {
-        sh './gradlew sonarqube -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login="admin" -Dsonar.password="ensf400" -Dsonar.java.jdkHome=${JAVA_HOME}'
-        // Wait for SonarQube analysis to complete
+        sh './gradlew sonarqube'
+        // wait for sonarqube to finish its analysis
         sleep 5
         sh './gradlew checkQualityGate'
       }
