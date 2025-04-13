@@ -66,8 +66,7 @@ pipeline {
         PATH = "${JAVA_HOME}/bin:${PATH}"
       }      
       steps {
-        // Use the correct hostname for SonarQube (e.g., "sonarqube" or "localhost")
-        sh './gradlew sonarqube -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login="admin" -Dsonar.password="ensf400"'
+        sh './gradlew sonarqube -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login="admin" -Dsonar.password="ensf400" -Dsonar.java.jdkHome=${JAVA_HOME}'
         // Wait for SonarQube analysis to complete
         sleep 5
         sh './gradlew checkQualityGate'
