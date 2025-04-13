@@ -1,4 +1,4 @@
-# ENSF 400 Project
+# ENSF 400 Project test
 
 ## Demo - demonstrates an application and tests
 
